@@ -1,0 +1,13 @@
+# 构建产物
+dist/
+build/
+*.spec
+
+# Python
+__pycache__/
+*.pyc
+
+# 运行时产生的目录/文件
+received/
+selftest-received/
+*.log
