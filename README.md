@@ -2,7 +2,11 @@
 
 手机 ↔ 电脑 互传文件与文本的轻量工具。PC 端运行一个小程序,手机端**扫码用浏览器打开**即可,手机无需安装任何 App。
 
-![界面](icon_preview.png)
+| 电脑端 | 手机端(发送 / 接收) |
+|---|---|
+| ![电脑端](docs/screenshot-pc.png) | ![手机端](docs/screenshot-mobile-send.png) ![接收](docs/screenshot-mobile-receive.png) |
+
+![图标](icon_preview.png)
 
 ## 功能
 

@@ -16,11 +16,12 @@ from PySide6.QtCore import (QBuffer, QEasingCurve, QObject, QPropertyAnimation,
                             QSettings, QSize, Qt, QTime, QTimer, Signal)
 from PySide6.QtGui import QFont, QIcon, QLinearGradient, QPainter, QPixmap, QColor
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog,
-                               QFileDialog, QFrame, QGraphicsOpacityEffect,
-                               QHBoxLayout, QLabel, QLineEdit, QListWidget,
-                               QListWidgetItem, QMainWindow, QMenu,
-                               QPlainTextEdit, QPushButton, QScrollArea,
-                               QSpinBox, QSplitter, QSystemTrayIcon, QTabWidget,
+                               QFileDialog, QFrame, QGraphicsDropShadowEffect,
+                               QGraphicsOpacityEffect, QHBoxLayout, QLabel,
+                               QLineEdit, QListWidget, QListWidgetItem,
+                               QMainWindow, QMenu, QPlainTextEdit, QPushButton,
+                               QScrollArea, QSpinBox, QSplitter,
+                               QSystemTrayIcon, QTabWidget, QTextEdit,
                                QVBoxLayout, QWidget)
 
 import channels
@@ -32,7 +33,8 @@ APP_NAME = "轻传 LiteDrop"
 STYLE = """
 * { font-family:"Microsoft YaHei UI"; outline:none; }
 QMainWindow, QDialog { background:#0a0f1c; }
-QFrame#card { background:#111a2e; border:1px solid #1d2942; border-radius:14px; }
+QFrame#card { background:qlineargradient(x1:0,y1:0,x2:0,y2:1,
+  stop:0 #121b30, stop:1 #0f1728); border:1px solid #1d2942; border-radius:16px; }
 QLabel { color:#e8eef9; background:transparent; }
 QLabel#h1 { font-size:17px; font-weight:700; }
 QLabel#sect { color:#8ca0c0; font-size:12px; font-weight:600; letter-spacing:1px; }
@@ -43,7 +45,8 @@ QPushButton:hover { background:#223054; }
 QPushButton:pressed { background:#182342; }
 QPushButton:disabled { color:#5a6b8c; background:#141d33; border-color:#1d2942; }
 QPushButton#primary { background:qlineargradient(x1:0,y1:0,x2:1,y2:0,
-  stop:0 #4f7cff, stop:1 #22d3ee); border:none; color:#fff; font-weight:600; padding:8px 20px; }
+  stop:0 #4f7cff, stop:1 #22d3ee); border:none; color:#fff; font-weight:600;
+  padding:8px 22px; letter-spacing:1px; }
 QPushButton#primary:hover { background:qlineargradient(x1:0,y1:0,x2:1,y2:0,
   stop:0 #5f8aff, stop:1 #3cd8f2); }
 QPushButton#primary:pressed { background:qlineargradient(x1:0,y1:0,x2:1,y2:0,
@@ -79,7 +82,9 @@ QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height:0; }
 QScrollBar:horizontal { background:transparent; height:8px; margin:2px; }
 QScrollBar::handle:horizontal { background:#26355a; border-radius:4px; min-width:30px; }
 QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width:0; }
-QPlainTextEdit#log { color:#8ca0c0; font-size:12px; border-radius:12px; }
+QTextEdit#log { color:#8ca0c0; font-size:12px; border-radius:12px;
+  background:#0d1526; border:1px solid #1d2942; }
+QTextEdit#log QScrollBar:vertical { width:6px; }
 QCheckBox { color:#e8eef9; font-size:13px; spacing:6px; }
 QCheckBox::indicator { width:16px; height:16px; border-radius:5px;
   border:1px solid #2c3d60; background:#0d1526; }
@@ -248,9 +253,10 @@ class MainWindow(QMainWindow):
         top_lay = QHBoxLayout(top)
         top_lay.setContentsMargins(18, 14, 18, 4)
         top_lay.setSpacing(12)
-        title = QLabel("📡 " + APP_NAME)
-        title.setObjectName("h1")
-        self.pill = QLabel("已停止")
+        title = QLabel('<span style="font-size:19px;font-weight:800;">轻传 '
+                       '</span><span style="font-size:19px;font-weight:800;'
+                       'color:#5f8aff;">LiteDrop</span>')
+        self.pill = QLabel("● 已停止")
         self.pill.setStyleSheet(self._pill_qss(False))
         self.spin_port = QSpinBox()
         self.spin_port.setRange(1024, 65535)
@@ -281,12 +287,24 @@ class MainWindow(QMainWindow):
 
         qr_wrap = QHBoxLayout()
         qr_wrap.addStretch()
+        qr_box = QVBoxLayout()
+        qr_box.setSpacing(8)
         self.qr_label = QLabel("服务未启动")
         self.qr_label.setAlignment(Qt.AlignCenter)
         self.qr_label.setFixedSize(220, 220)
         self.qr_label.setStyleSheet(
-            "background:#ffffff; border-radius:14px; color:#64748b; font-size:13px;")
-        qr_wrap.addWidget(self.qr_label)
+            "background:#ffffff; border-radius:16px; color:#64748b; font-size:13px;")
+        glow = QGraphicsDropShadowEffect(self)
+        glow.setBlurRadius(38)
+        glow.setColor(QColor(79, 124, 255, 105))
+        glow.setOffset(0, 6)
+        self.qr_label.setGraphicsEffect(glow)
+        qr_box.addWidget(self.qr_label)
+        qr_cap = QLabel("手机扫码连接 · 或复制下方地址")
+        qr_cap.setObjectName("muted")
+        qr_cap.setAlignment(Qt.AlignCenter)
+        qr_box.addWidget(qr_cap)
+        qr_wrap.addLayout(qr_box)
         qr_wrap.addStretch()
         conn_lay.addLayout(qr_wrap)
 
@@ -302,10 +320,10 @@ class MainWindow(QMainWindow):
         conn_lay.addLayout(url_row)
 
         btn_row = QHBoxLayout()
-        btn_refresh = QPushButton("重新检测")
-        btn_firewall = QPushButton("防火墙放行")
-        btn_map = QPushButton("IPv4 映射")
-        self.btn_tunnel = QPushButton("启动公网隧道")
+        btn_refresh = QPushButton("⟳ 重新检测")
+        btn_firewall = QPushButton("🛡 防火墙放行")
+        btn_map = QPushButton("🔗 IPv4 映射")
+        self.btn_tunnel = QPushButton("☁ 启动公网隧道")
         for b in (btn_refresh, btn_firewall, btn_map, self.btn_tunnel):
             b.setObjectName("small")
         btn_refresh.clicked.connect(self.refresh_channels)
@@ -412,10 +430,10 @@ class MainWindow(QMainWindow):
         recv_lay.addLayout(dir_row)
 
         log_card, log_lay = self._card("运 行 日 志")
-        self.log_box = QPlainTextEdit()
+        self.log_box = QTextEdit()
         self.log_box.setObjectName("log")
         self.log_box.setReadOnly(True)
-        self.log_box.setMaximumBlockCount(400)
+        self.log_box.document().setMaximumBlockCount(400)
         log_lay.addWidget(self.log_box, 1)
 
         right = QWidget()
@@ -543,7 +561,7 @@ class MainWindow(QMainWindow):
             self._log(f"启动失败:{exc}(端口可能被占用,换一个试试)")
             return
         self.settings.setValue("port", self.server.port)
-        self.pill.setText(f"运行中 · 端口 {self.server.port}")
+        self.pill.setText(f"● 运行中 · 端口 {self.server.port}")
         self.pill.setStyleSheet(self._pill_qss(True))
         self.btn_toggle.setText("  停止服务  ")
         stack = ("IPv4 + IPv6 双栈" if
@@ -557,12 +575,12 @@ class MainWindow(QMainWindow):
         self._remove_mapping()
         if self.tunnel.running:
             self.tunnel.stop()
-            self.btn_tunnel.setText("启动公网隧道")
+            self.btn_tunnel.setText("☁ 启动公网隧道")
         if self.server:
             self.server.stop()
             self.server = None
         self.state = None
-        self.pill.setText("已停止")
+        self.pill.setText("● 已停止")
         self.pill.setStyleSheet(self._pill_qss(False))
         self.btn_toggle.setText("  启动服务  ")
         self.channels = []
@@ -725,7 +743,7 @@ class MainWindow(QMainWindow):
     def _on_tunnel_state(self, state: str):
         if state in ("stopped", "error"):
             self._tunnel_verified_url = None
-            self.btn_tunnel.setText("启动公网隧道")
+            self.btn_tunnel.setText("☁ 启动公网隧道")
             self.refresh_channels()
 
     def _rebuild_combo(self):
@@ -782,11 +800,11 @@ class MainWindow(QMainWindow):
             return
         if self.tunnel.running:
             self.tunnel.stop()
-            self.btn_tunnel.setText("启动公网隧道")
+            self.btn_tunnel.setText("☁ 启动公网隧道")
             self.refresh_channels()
         else:
             self.tunnel.start(self.server.port)
-            self.btn_tunnel.setText("停止隧道")
+            self.btn_tunnel.setText("☁ 停止隧道")
             self._log("隧道启动中,请稍候…")
 
     def _firewall(self):
@@ -950,8 +968,19 @@ class MainWindow(QMainWindow):
 
     # ------------------------------------------------------------- 日志/退出
     def _log(self, msg: str):
-        self.log_box.appendPlainText(
-            f"[{QTime.currentTime().toString('HH:mm:ss')}] {msg}")
+        from html import escape
+        if "✓" in msg or "成功" in msg:
+            color = "#34d399"
+        elif "失败" in msg or "错误" in msg or "不一致" in msg or "无效" in msg:
+            color = "#f87171"
+        elif msg.startswith("提示") or "提示:" in msg or "提示:" in msg:
+            color = "#fbbf24"
+        else:
+            color = "#c6d4ee"
+        stamp = QTime.currentTime().toString("HH:mm:ss")
+        self.log_box.append(
+            f'<span style="color:#4a5a7a;">[{stamp}]</span> '
+            f'<span style="color:{color};">{escape(msg)}</span>')
 
     def _quit(self):
         self.settings.sync()
